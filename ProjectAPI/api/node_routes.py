@@ -149,19 +149,27 @@ async def add_node(
                 status_code=400,
                 detail={"status": 0, "message": "กรุณากรอกข้อมูลให้ครบถ้วน", "data": {}}
             )
-
-        existing = db.query(Nodes).filter(
+            
+        existing_name = db.query(Nodes).filter(
             Nodes.node_name == req.node_name.strip(),
             Nodes.user_id == current_user.user_id
         ).first()
         
-        if existing:
+        if existing_name:
             raise HTTPException(
                 status_code=409,
-                detail={"status": 0, "message": "ชื่อ Node นี้ถูกใช้งานแล้ว", "data": {}}
+                detail={"status": 0, "message": "ชื่อ Node นี้ถูกใช้งานแล้วในบัญชีของคุณ", "data": {}}
             )
 
-        node_id = f"{current_user.user_id}_{req.node_name.strip()}"
+        node_id = req.node_name.strip()
+        existing_id = db.query(Nodes).filter(Nodes.node_id == node_id).first()
+        
+        if existing_id:
+            raise HTTPException(
+                status_code=409,
+                detail={"status": 0, "message": "ชื่อ Node นี้ถูกใช้งานแล้วในระบบ กรุณาใช้ชื่ออื่น", "data": {}}
+            )
+
         node_token = create_node_token(node_id)
 
         new_node = Nodes(

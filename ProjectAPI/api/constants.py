@@ -1,0 +1,15 @@
+ROLE_NODE_OWNER = 0
+ROLE_ADMIN = 1
+
+STATUS_OFFLINE = 0
+STATUS_ONLINE = 1
+
+ROLE_CHOICES = {
+    ROLE_NODE_OWNER: "Node Owner",
+    ROLE_ADMIN: "Admin"
+}
+
+STATUS_CHOICES = {
+    STATUS_OFFLINE: "Offline",
+    STATUS_ONLINE: "Online"
+}

@@ -1,0 +1,15 @@
+services:
+  fastapi:
+    build: .
+    container_name: fastapiAQI
+    restart: unless-stopped
+    environment:  
+      TZ: Asia/Bangkok
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./api:/code/api
+      - fastapi_data:/data 
+
+volumes:
+  fastapi_data:

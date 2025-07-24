@@ -427,6 +427,7 @@ async def get_summary_1hour(node_id: str, user_id: int = None, db: Session = Dep
     '''
     return await process_aggregated_query(query, "summary_1h", node_id)
 
+<<<<<<< Updated upstream
 @aqi_router.get("/summary/1day/{node_id}", summary="Get 1 Day Summary")
 async def get_summary_1day(node_id: str, user_id: int = None, db: Session = Depends(get_db)):
     if user_id:
@@ -439,6 +440,21 @@ async def get_summary_1day(node_id: str, user_id: int = None, db: Session = Depe
             |> filter(fn: (r) => r["node_id"] == "{node_id}")
     '''
     return await process_aggregated_query(query, "summary_1d", node_id)
+=======
+        query = f"""
+            from(bucket: "{INFLUXDB_BUCKET}")
+                |> range(start: -2h)
+                |> filter(fn: (r) => r["_measurement"] == "Summary")
+                |> filter(fn: (r) => r["node_id"] == "{node_id}")
+                |> filter(fn: (r) => r["_field"] == "summary_1h")
+                |> last()
+        """
+        
+        return await process_aggregated_query(query, "summary_1h", node_id)
+        
+    except Exception as e:
+        raise handle_query_error(e)
+>>>>>>> Stashed changes
 
 @aqi_router.get("/summary/7days/{node_id}", summary="Get 7 Days Summary")
 async def get_summary_7days(node_id: str, user_id: int = None, db: Session = Depends(get_db)):
@@ -453,6 +469,7 @@ async def get_summary_7days(node_id: str, user_id: int = None, db: Session = Dep
     '''
     return await process_aggregated_query(query, "summary_7d", node_id)
 
+<<<<<<< Updated upstream
 @aqi_router.get("/summary/30days/{node_id}", summary="Get 30 Days Summary")
 async def get_summary_30days(node_id: str, user_id: int = None, db: Session = Depends(get_db)):
     if user_id:
@@ -465,3 +482,68 @@ async def get_summary_30days(node_id: str, user_id: int = None, db: Session = De
             |> filter(fn: (r) => r["node_id"] == "{node_id}")
     '''
     return await process_aggregated_query(query, "summary_30d", node_id)
+=======
+        query = f"""
+            from(bucket: "{INFLUXDB_BUCKET}")
+                |> range(start: -13h)
+                |> filter(fn: (r) => r["_measurement"] == "Summary")
+                |> filter(fn: (r) => r["node_id"] == "{node_id}")
+                |> filter(fn: (r) => r["_field"] == "summary_1d")
+                |> last()
+        """
+        
+        return await process_aggregated_query(query, "summary_24h", node_id)
+        
+    except Exception as e:
+        raise handle_query_error(e)
+
+@aqi_router.get("/summary/7days/{node_id}")
+async def get_summary_7days(
+    node_id: str,
+    user_id: int = None,
+    db: Session = Depends(get_db)
+):
+    """ดึงข้อมูลสรุปคุณภาพอากาศในช่วง 7 วัน"""
+    try:
+        if user_id:
+            await verify_node_access(node_id, user_id, db)
+
+        query = f"""
+            from(bucket: "{INFLUXDB_BUCKET}")
+                |> range(start: -8d)
+                |> filter(fn: (r) => r["_measurement"] == "Summary")
+                |> filter(fn: (r) => r["node_id"] == "{node_id}")
+                |> filter(fn: (r) => r["_field"] == "summary_7d")
+                |> last()
+        """
+        
+        return await process_aggregated_query(query, "summary_7d", node_id)
+        
+    except Exception as e:
+        raise handle_query_error(e)
+
+@aqi_router.get("/summary/30days/{node_id}")
+async def get_summary_30days(
+    node_id: str,
+    user_id: int = None,
+    db: Session = Depends(get_db)
+):
+    """ดึงข้อมูลสรุปคุณภาพอากาศในช่วง 30 วัน"""
+    try:
+        if user_id:
+            await verify_node_access(node_id, user_id, db)
+
+        query = f"""
+            from(bucket: "{INFLUXDB_BUCKET}")
+                |> range(start: -31d)
+                |> filter(fn: (r) => r["_measurement"] == "Summary")
+                |> filter(fn: (r) => r["node_id"] == "{node_id}")
+                |> filter(fn: (r) => r["_field"] == "summary_30d")
+                |> last()
+        """
+        
+        return await process_aggregated_query(query, "summary_30d", node_id)
+        
+    except Exception as e:
+        raise handle_query_error(e)
+>>>>>>> Stashed changes

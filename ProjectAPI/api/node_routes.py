@@ -28,7 +28,7 @@ class NodeRequest(BaseModel):
     description: Optional[str] = None
 
 class UpdateNodeRequest(BaseModel):
-    node_id: str
+    node_id: int
     node_name: Optional[str] = None
     location: Optional[str] = None
     description: Optional[str] = None
@@ -40,12 +40,12 @@ class NodeIdRequest(BaseModel):
 
 class NodeDeleteBody(BaseModel):
     """Request body สำหรับลบ node"""
-    node_id: str
+    node_id: int
     reason: Optional[str] = None
 
 class NodeStatusResponse(BaseModel):
     """Response model for node status"""
-    node_id: str
+    node_id: int
     node_name: str
     last_seen: Optional[str]
     status: int
@@ -161,19 +161,11 @@ async def add_node(
                 detail={"status": 0, "message": "ชื่อ Node นี้ถูกใช้งานแล้วในบัญชีของคุณ", "data": {}}
             )
 
-        node_id = req.node_name.strip()
-        existing_id = db.query(Nodes).filter(Nodes.node_id == node_id).first()
-        
-        if existing_id:
-            raise HTTPException(
-                status_code=409,
-                detail={"status": 0, "message": "ชื่อ Node นี้ถูกใช้งานแล้วในระบบ กรุณาใช้ชื่ออื่น", "data": {}}
-            )
-
-        node_token = create_node_token(node_id)
+        # สร้าง node token สำหรับ authentication
+        node_token = create_node_token("")  # node_id จะได้หลังจาก insert
 
         new_node = Nodes(
-            node_id=node_id,
+            # ไม่ต้องใส่ node_id เพราะเป็น auto increment
             node_name=req.node_name.strip(),
             location=req.location.strip(),
             description=req.description.strip() if req.description else None,
@@ -187,7 +179,7 @@ async def add_node(
         db.commit()
         db.refresh(new_node)
 
-        logger.info(f"Node created successfully: {node_id}")
+        logger.info(f"Node created successfully: {new_node.node_id}")
         return {
             "status": 1,
             "message": "เพิ่ม Node สำเร็จ",
@@ -439,7 +431,7 @@ async def check_node_status(
                     from(bucket: "{config.bucket}")
                         |> range(start: -1h)
                         |> filter(fn: (r) => r["_measurement"] == "air_quality")
-                        |> filter(fn: (r) => r["node_id"] == "{node.node_id}")
+                        |> filter(fn: (r) => r["node_id"] == "{str(node.node_id)}")
                         |> sort(columns: ["_time"], desc: true)
                         |> limit(n: 1)
                     '''

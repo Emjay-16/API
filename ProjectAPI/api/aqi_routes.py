@@ -186,7 +186,7 @@ async def submit_air_quality_data(
         try:
             point = (
                 Point("air_quality")
-                .tag("node_id", data.node_id)
+                .tag("node_id", str(data.node_id))  # Convert integer to string for InfluxDB tag
                 .field("PM1", float(data.PM1))
                 .field("PM2_5", float(data.PM2_5))
                 .field("PM4", float(data.PM4))
@@ -246,7 +246,7 @@ async def get_air_quality_data(
                                    r["_field"] == "PM4" or 
                                    r["_field"] == "humidity" or 
                                    r["_field"] == "temperature")
-                |> filter(fn: (r) => r["node_id"] == "{node_id}")
+                |> filter(fn: (r) => r["node_id"] == "{str(node_id)}")
                 |> aggregateWindow(every: {hours}h, fn: mean, createEmpty: false)
                 |> yield(name: "mean")
         """
@@ -276,7 +276,7 @@ async def get_latest_air_quality(
                                    r["_field"] == "PM4" or 
                                    r["_field"] == "humidity" or 
                                    r["_field"] == "temperature")
-                |> filter(fn: (r) => r["node_id"] == "{node_id}")
+                |> filter(fn: (r) => r["node_id"] == "{str(node_id)}")
                 |> last()
         """
         result = query_api.query(org=INFLUXDB_ORG, query=query)
@@ -318,7 +318,7 @@ async def get_aqi_1hour(node_id: str, user_id: int = None, db: Session = Depends
             |> range(start: -2h)
             |> filter(fn: (r) => r["_measurement"] == "AQI")
             |> filter(fn: (r) => r["_field"] == "PM2_5_AQI_1h")
-            |> filter(fn: (r) => r["node_id"] == "{node_id}")
+            |> filter(fn: (r) => r["node_id"] == "{str(node_id)}")
     '''
     return await process_aggregated_query(query, "aqi_1h", node_id)
 
@@ -332,7 +332,7 @@ async def get_aqi_24hours(node_id: str, user_id: int = None, db: Session = Depen
             |> range(start: -2d)
             |> filter(fn: (r) => r["_measurement"] == "AQI")
             |> filter(fn: (r) => r["_field"] == "PM2_5_AQI_1d")
-            |> filter(fn: (r) => r["node_id"] == "{node_id}")
+            |> filter(fn: (r) => r["node_id"] == "{str(node_id)}")
     '''
     return await process_aggregated_query(query, "aqi_24h", node_id)
 
@@ -346,7 +346,7 @@ async def get_aqi_7days(node_id: str, user_id: int = None, db: Session = Depends
             |> range(start: -8d)
             |> filter(fn: (r) => r["_measurement"] == "AQI")
             |> filter(fn: (r) => r["_field"] == "PM2_5_AQI_7d")
-            |> filter(fn: (r) => r["node_id"] == "{node_id}")
+            |> filter(fn: (r) => r["node_id"] == "{str(node_id)}")
     '''
     return await process_aggregated_query(query, "aqi_7d", node_id)
 
@@ -361,58 +361,10 @@ async def get_aqi_30days(node_id: str, user_id: int = None, db: Session = Depend
             |> range(start: -31d)
             |> filter(fn: (r) => r["_measurement"] == "AQI")
             |> filter(fn: (r) => r["_field"] == "PM2_5_AQI_30d")
-            |> filter(fn: (r) => r["node_id"] == "{node_id}")
+            |> filter(fn: (r) => r["node_id"] == "{str(node_id)}")
     '''
     return await process_aggregated_query(query, "aqi_30d", node_id)
 
-
-@aqi_router.get("/aggregated/{node_id}", summary="Get Aggregated Data")
-async def get_aggregated_data(
-    node_id: str,
-    timeframe: str = "hourly",
-    user_id: int = None,
-    db: Session = Depends(get_db)
-):
-    """ดึงข้อมูลแบบรวมตามกรอบเวลา"""
-    try:
-        if user_id:
-            await verify_node_access(node_id, user_id, db)
-        
-        timeframe_config = {
-            "hourly": ("-24h", "1h"),
-            "daily": ("-30d", "1d"),
-            "weekly": ("-12w", "7d"),
-            "monthly": ("-12mo", "30d")
-        }
-        
-        if timeframe not in timeframe_config:
-            raise HTTPException(
-                status_code=400,
-                detail={"status": 0, "message": "Invalid timeframe. Use: hourly, daily, weekly, monthly", "data": {}}
-            )
-        
-        time_range, window = timeframe_config[timeframe]
-        
-        query = f"""
-            from(bucket: "{INFLUXDB_BUCKET}")
-                |> range(start: {time_range})
-                |> filter(fn: (r) => r["_measurement"] == "air_quality")
-                |> filter(fn: (r) => r["node_id"] == "{node_id}")
-                |> filter(fn: (r) => r["_field"] == "CO2" or 
-                                   r["_field"] == "PM1" or 
-                                   r["_field"] == "PM10" or 
-                                   r["_field"] == "PM2_5" or 
-                                   r["_field"] == "PM4" or 
-                                   r["_field"] == "humidity" or 
-                                   r["_field"] == "temperature")
-                |> aggregateWindow(every: {window}, fn: mean, createEmpty: false)
-                |> yield(name: "mean")
-        """
-        
-        return await process_aggregated_query(query, timeframe, node_id)
-        
-    except Exception as e:
-        raise handle_query_error(e)
 
 @aqi_router.get("/summary/1hour/{node_id}", summary="Get 1 Hour Summary")
 async def get_summary_1hour(node_id: str, user_id: int = None, db: Session = Depends(get_db)):
@@ -423,7 +375,7 @@ async def get_summary_1hour(node_id: str, user_id: int = None, db: Session = Dep
             |> range(start: -2h)
             |> filter(fn: (r) => r["_measurement"] == "Summary")
             |> filter(fn: (r) => r["type"] == "summary_1h")
-            |> filter(fn: (r) => r["node_id"] == "{node_id}")
+            |> filter(fn: (r) => r["node_id"] == "{str(node_id)}")
     '''
     return await process_aggregated_query(query, "summary_1h", node_id)
 
@@ -437,7 +389,7 @@ async def get_summary_1day(node_id: str, user_id: int = None, db: Session = Depe
             |> range(start: -2d)
             |> filter(fn: (r) => r["_measurement"] == "Summary")
             |> filter(fn: (r) => r["type"] == "summary_1d")
-            |> filter(fn: (r) => r["node_id"] == "{node_id}")
+            |> filter(fn: (r) => r["node_id"] == "{str(node_id)}")
     '''
     return await process_aggregated_query(query, "summary_1d", node_id)
 =======
@@ -465,7 +417,7 @@ async def get_summary_7days(node_id: str, user_id: int = None, db: Session = Dep
             |> range(start: -8d)
             |> filter(fn: (r) => r["_measurement"] == "Summary")
             |> filter(fn: (r) => r["type"] == "summary_7d")
-            |> filter(fn: (r) => r["node_id"] == "{node_id}")
+            |> filter(fn: (r) => r["node_id"] == "{str(node_id)}")
     '''
     return await process_aggregated_query(query, "summary_7d", node_id)
 
@@ -479,7 +431,7 @@ async def get_summary_30days(node_id: str, user_id: int = None, db: Session = De
             |> range(start: -31d)
             |> filter(fn: (r) => r["_measurement"] == "Summary")
             |> filter(fn: (r) => r["type"] == "summary_30d")
-            |> filter(fn: (r) => r["node_id"] == "{node_id}")
+            |> filter(fn: (r) => r["node_id"] == "{str(node_id)}")
     '''
     return await process_aggregated_query(query, "summary_30d", node_id)
 =======

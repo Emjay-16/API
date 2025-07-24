@@ -368,31 +368,10 @@ async def get_aqi_30days(node_id: str, user_id: int = None, db: Session = Depend
 
 @aqi_router.get("/summary/1hour/{node_id}", summary="Get 1 Hour Summary")
 async def get_summary_1hour(node_id: str, user_id: int = None, db: Session = Depends(get_db)):
-    if user_id:
-        await verify_node_access(node_id, user_id, db)
-    query = f'''
-        from(bucket: "{INFLUXDB_BUCKET}")
-            |> range(start: -2h)
-            |> filter(fn: (r) => r["_measurement"] == "Summary")
-            |> filter(fn: (r) => r["type"] == "summary_1h")
-            |> filter(fn: (r) => r["node_id"] == "{str(node_id)}")
-    '''
-    return await process_aggregated_query(query, "summary_1h", node_id)
+    try:
+        if user_id:
+            await verify_node_access(node_id, user_id, db)
 
-<<<<<<< Updated upstream
-@aqi_router.get("/summary/1day/{node_id}", summary="Get 1 Day Summary")
-async def get_summary_1day(node_id: str, user_id: int = None, db: Session = Depends(get_db)):
-    if user_id:
-        await verify_node_access(node_id, user_id, db)
-    query = f'''
-        from(bucket: "{INFLUXDB_BUCKET}")
-            |> range(start: -2d)
-            |> filter(fn: (r) => r["_measurement"] == "Summary")
-            |> filter(fn: (r) => r["type"] == "summary_1d")
-            |> filter(fn: (r) => r["node_id"] == "{str(node_id)}")
-    '''
-    return await process_aggregated_query(query, "summary_1d", node_id)
-=======
         query = f"""
             from(bucket: "{INFLUXDB_BUCKET}")
                 |> range(start: -2h)
@@ -406,50 +385,28 @@ async def get_summary_1day(node_id: str, user_id: int = None, db: Session = Depe
         
     except Exception as e:
         raise handle_query_error(e)
->>>>>>> Stashed changes
 
-@aqi_router.get("/summary/7days/{node_id}", summary="Get 7 Days Summary")
-async def get_summary_7days(node_id: str, user_id: int = None, db: Session = Depends(get_db)):
-    if user_id:
-        await verify_node_access(node_id, user_id, db)
-    query = f'''
-        from(bucket: "{INFLUXDB_BUCKET}")
-            |> range(start: -8d)
-            |> filter(fn: (r) => r["_measurement"] == "Summary")
-            |> filter(fn: (r) => r["type"] == "summary_7d")
-            |> filter(fn: (r) => r["node_id"] == "{str(node_id)}")
-    '''
-    return await process_aggregated_query(query, "summary_7d", node_id)
+@aqi_router.get("/summary/1day/{node_id}", summary="Get 1 Day Summary")
+async def get_summary_1day(node_id: str, user_id: int = None, db: Session = Depends(get_db)):
+    try:
+        if user_id:
+            await verify_node_access(node_id, user_id, db)
 
-<<<<<<< Updated upstream
-@aqi_router.get("/summary/30days/{node_id}", summary="Get 30 Days Summary")
-async def get_summary_30days(node_id: str, user_id: int = None, db: Session = Depends(get_db)):
-    if user_id:
-        await verify_node_access(node_id, user_id, db)
-    query = f'''
-        from(bucket: "{INFLUXDB_BUCKET}")
-            |> range(start: -31d)
-            |> filter(fn: (r) => r["_measurement"] == "Summary")
-            |> filter(fn: (r) => r["type"] == "summary_30d")
-            |> filter(fn: (r) => r["node_id"] == "{str(node_id)}")
-    '''
-    return await process_aggregated_query(query, "summary_30d", node_id)
-=======
         query = f"""
             from(bucket: "{INFLUXDB_BUCKET}")
-                |> range(start: -13h)
+                |> range(start: -2d)
                 |> filter(fn: (r) => r["_measurement"] == "Summary")
                 |> filter(fn: (r) => r["node_id"] == "{node_id}")
                 |> filter(fn: (r) => r["_field"] == "summary_1d")
                 |> last()
         """
         
-        return await process_aggregated_query(query, "summary_24h", node_id)
+        return await process_aggregated_query(query, "summary_1d", node_id)
         
     except Exception as e:
         raise handle_query_error(e)
 
-@aqi_router.get("/summary/7days/{node_id}")
+@aqi_router.get("/summary/7days/{node_id}", summary="Get 7 Days Summary")
 async def get_summary_7days(
     node_id: str,
     user_id: int = None,
@@ -474,7 +431,7 @@ async def get_summary_7days(
     except Exception as e:
         raise handle_query_error(e)
 
-@aqi_router.get("/summary/30days/{node_id}")
+@aqi_router.get("/summary/30days/{node_id}", summary="Get 30 Days Summary")
 async def get_summary_30days(
     node_id: str,
     user_id: int = None,
@@ -498,4 +455,3 @@ async def get_summary_30days(
         
     except Exception as e:
         raise handle_query_error(e)
->>>>>>> Stashed changes

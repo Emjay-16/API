@@ -44,8 +44,8 @@ class Token(Base):
 
 class Nodes(Base):
     __tablename__ = "nodes"
-    
-    node_id = Column(Text, primary_key=True, index=True)
+
+    node_id = Column(Integer, primary_key=True, index=True)
     node_name = Column(Text, nullable=False)
     location = Column(Text)
     description = Column(Text)

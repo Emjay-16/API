@@ -544,3 +544,94 @@ async def get_graph_data(
         raise he
     except Exception as e:
         raise handle_query_error(e)
+
+@aqi_router.get("/latest/{node_name}", summary="Get Latest Air Quality Reading")
+async def get_latest_air_quality(
+    node_name: str,
+    db: Session = Depends(get_db)
+):
+    """ดึงข้อมูลคุณภาพอากาศล่าสุดของ node"""
+    try:
+        query = f"""
+            from(bucket: "{INFLUXDB_BUCKET}")
+                |> range(start: -24h)
+                |> filter(fn: (r) => r["_measurement"] == "air_quality")
+                |> filter(fn: (r) => r["_field"] == "CO2" or 
+                                   r["_field"] == "PM1" or 
+                                   r["_field"] == "PM10" or 
+                                   r["_field"] == "PM2_5" or 
+                                   r["_field"] == "PM4" or 
+                                   r["_field"] == "humidity" or 
+                                   r["_field"] == "temperature")
+                |> filter(fn: (r) => r["node_name"] == "{node_name}")
+                |> last()
+        """
+        result = query_api.query(org=INFLUXDB_ORG, query=query)
+        
+        data_by_time = {}
+        latest_timestamp = None
+        
+        for table in result:
+            for record in table.records:
+                timestamp = record.get_time()
+                field = record.get_field()
+                value = record.get_value()
+                
+                if value is not None and isinstance(value, (int, float)):
+                    if str(value).lower() in ['nan', 'inf', '-inf'] or value < 0:
+                        clean_value = 0.0
+                    else:
+                        clean_value = round(float(value), 2)
+                else:
+                    clean_value = 0.0
+                
+                timestamp_str = timestamp.isoformat()
+                
+                if timestamp_str not in data_by_time:
+                    data_by_time[timestamp_str] = {
+                        "timestamp": timestamp.astimezone(pytz.timezone("Asia/Bangkok")).isoformat(),
+                        "datetime": timestamp.astimezone(pytz.timezone("Asia/Bangkok")).strftime("%Y-%m-%d %H:%M:%S"),
+                        "data": {}
+                    }
+                
+                data_by_time[timestamp_str]["data"][field] = clean_value
+                
+                if latest_timestamp is None or timestamp > latest_timestamp:
+                    latest_timestamp = timestamp
+        
+        if not data_by_time:
+            raise HTTPException(
+                status_code=404,
+                detail={"status": 0, "message": "ไม่พบข้อมูลล่าสุด", "data": {}}
+            )
+        
+        latest_data_key = latest_timestamp.isoformat()
+        latest_reading = data_by_time[latest_data_key]
+        
+        formatted_data = {
+            "timestamp": latest_reading["timestamp"],
+            "datetime": latest_reading["datetime"],
+            "PM1": latest_reading["data"].get("PM1", 0.0),
+            "PM2_5": latest_reading["data"].get("PM2_5", 0.0),
+            "PM4": latest_reading["data"].get("PM4", 0.0),
+            "PM10": latest_reading["data"].get("PM10", 0.0),
+            "CO2": latest_reading["data"].get("CO2", 0.0),
+            "temperature": latest_reading["data"].get("temperature", 0.0),
+            "humidity": latest_reading["data"].get("humidity", 0.0)
+        }
+        
+        return {
+            "status": 1,
+            "message": "ดึงข้อมูลล่าสุดสำเร็จ",
+            "data": formatted_data,
+            "metadata": {
+                "node_name": node_name,
+                "timezone": "Asia/Bangkok",
+                "fields_count": len([v for v in formatted_data.values() if isinstance(v, (int, float)) and v > 0])
+            }
+        }
+        
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise handle_query_error(e)

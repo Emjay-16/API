@@ -2,8 +2,6 @@ FROM python:3.10-slim
 
 WORKDIR /code
 
-COPY ./api/requirements.txt /code/requirements.txt
-
 COPY . /code
 
 RUN pip install --no-cache-dir --upgrade -r /code/api/requirements.txt

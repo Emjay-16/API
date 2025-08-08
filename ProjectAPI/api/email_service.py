@@ -17,7 +17,7 @@ def send_verification_email(email: str, token: str):
             <h1 style="color: #4CAF50; text-align: center;">ยืนยันอีเมลของคุณ</h1>
             <p style="color: #333333; font-size: 16px; line-height: 1.5; text-align: center;">สวัสดี,</p>
             <p style="color: #333333; font-size: 16px; line-height: 1.5; text-align: center;">กรุณาคลิกลิงก์ด้านล่างเพื่อยืนยันอีเมลของคุณและเริ่มใช้งานระบบ:</p>
-            <a href="http://172.24.163.27:3000//email-verified?token={token}"
+            <a href="http://localhost:3000//email-verified?token={token}"
                 style="display: block; 
                       padding: 12px 40px; 
                       background-color: #53CDFF; 
@@ -69,7 +69,7 @@ def send_reset_email(email: str, token: str):
             <h1 style="color: #4CAF50; text-align: center;">รีเซ็ตรหัสผ่านของคุณ</h1>
             <p style="color: #333333; font-size: 16px; line-height: 1.5; text-align: center;">สวัสดี,</p>
             <p style="color: #333333; font-size: 16px; line-height: 1.5; text-align: center;">กรุณาคลิกลิงก์ด้านล่างเพื่อรีเซ็ตรหัสผ่านของคุณ:</p>
-            <a href="http://172.24.163.27:3000//reset-password?token={token}"
+            <a href="http://localhost:3000//reset-password?token={token}"
                 style="display: block; 
                       padding: 12px 40px; 
                       background-color: #53CDFF; 

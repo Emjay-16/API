@@ -12,6 +12,10 @@ from contextlib import contextmanager
 from influxdb_client import InfluxDBClient
 from influxdb_client.client.exceptions import InfluxDBError
 
+# from models import *
+# from database import *
+# from user_routes import *
+
 from api.models import *
 from api.database import *
 from api.user_routes import *
@@ -66,7 +70,7 @@ class InfluxDBConfig:
 def create_node_token(node_id: str) -> str:
     """สร้าง random token สำหรับ Node"""
     try:
-        token = secrets.token_urlsafe(32)  #ความยาว 32 
+        token = secrets.token_urlsafe(8) 
         return token
     except Exception as e:
         logger.error(f"Token generation error: {str(e)}")
@@ -161,11 +165,9 @@ async def add_node(
                 detail={"status": 0, "message": "ชื่อ Node นี้ถูกใช้งานแล้วในบัญชีของคุณ", "data": {}}
             )
 
-        # สร้าง node token สำหรับ authentication
-        node_token = create_node_token("")  # node_id จะได้หลังจาก insert
+        node_token = create_node_token("")
 
         new_node = Nodes(
-            # ไม่ต้องใส่ node_id เพราะเป็น auto increment
             node_name=req.node_name.strip(),
             location=req.location.strip(),
             description=req.description.strip() if req.description else None,
@@ -204,12 +206,11 @@ async def add_node(
 
 @node_router.get("/all", summary="ดูข้อมูล Nodes ทั้งหมด")
 async def get_all_nodes(
-    current_user: Users = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """ดึงข้อมูล nodes ทั้งหมดของ user นี้"""
+    """ดึงข้อมูล nodes ทั้งหมดในระบบ"""
     try:
-        nodes = db.query(Nodes).filter(Nodes.user_id == current_user.user_id).all()
+        nodes = db.query(Nodes).all()
 
         if not nodes:
             return {
@@ -320,7 +321,7 @@ async def delete_node(
             "message": "ลบ Node สำเร็จ",
             "data": {
                 "node_id": body.node_id,
-                "deleted_at": format_timestamp(get_thailand_now()),  # ใช้ฟังก์ชันใหม่
+                "deleted_at": format_timestamp(get_thailand_now()),
                 "reason": body.reason
             }
         }
@@ -431,7 +432,7 @@ async def check_node_status(
                     from(bucket: "{config.bucket}")
                         |> range(start: -1h)
                         |> filter(fn: (r) => r["_measurement"] == "air_quality")
-                        |> filter(fn: (r) => r["node_id"] == "{str(node.node_id)}")
+                        |> filter(fn: (r) => r["node_name"] == "{node.node_name}")
                         |> sort(columns: ["_time"], desc: true)
                         |> limit(n: 1)
                     '''
@@ -456,7 +457,7 @@ async def check_node_status(
                     if old_status != new_status:
                         node.status = new_status
                         node.updated_at = get_thailand_now()
-                        logger.info(f"Node {node.node_id} status changed from {old_status} to {new_status}")
+                        logger.info(f"Node {node.node_name} status changed from {old_status} to {new_status}")
                     
                     result.append({
                         "node_id": node.node_id,
@@ -468,7 +469,7 @@ async def check_node_status(
                     })
                     
                 except Exception as node_error:
-                    logger.error(f"Error checking status for node {node.node_id}: {str(node_error)}")
+                    logger.error(f"Error checking status for node {node.node_name}: {str(node_error)}")
                     result.append({
                         "node_id": node.node_id,
                         "node_name": node.node_name,

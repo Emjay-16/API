@@ -69,3 +69,12 @@ class Nodes(Base):
     
     def __repr__(self):
         return f"<Node(node_id={self.node_id}, node_name={self.node_name}, location={self.location}, status={self.status_text})>"
+    
+class Notification(Base):
+    __tablename__ = "notification"
+
+    email_id = Column(Integer, primary_key=True, index=True)
+    email = Column(Text, unique=True, nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

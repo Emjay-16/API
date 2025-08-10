@@ -49,7 +49,7 @@ class Nodes(Base):
 
     node_id = Column(Integer, primary_key=True, index=True)
     node_name = Column(Text, nullable=False)
-    location = Column(Text)
+    location = Column(Text, nullable=False)
     description = Column(Text)
     node_token = Column(Text, unique=True, nullable=False)
     user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False, index=True)
@@ -75,6 +75,7 @@ class Notification(Base):
 
     email_id = Column(Integer, primary_key=True, index=True)
     email = Column(Text, unique=True, nullable=False)
+    location = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

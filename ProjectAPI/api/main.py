@@ -13,6 +13,7 @@ from api.database import *
 from api.aqi_routes import *
 from api.user_routes import *
 from api.node_routes import *
+from api.notification_routes import *
 
 load_dotenv()
 
@@ -34,6 +35,7 @@ app.add_middleware(
 app.include_router(aqi_router)
 app.include_router(user_router, prefix="/auth")
 app.include_router(node_router)
+app.include_router(notification_router)
 
 # if __name__ == "__main__":
 #     import uvicorn

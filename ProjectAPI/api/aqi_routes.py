@@ -257,18 +257,20 @@ async def get_months_with_data(
     try:
         query = f'''
             from(bucket: "{INFLUXDB_BUCKET}")
-              |> range(start: -5y)
+              |> range(start: -2y)
               |> filter(fn: (r) => r["_measurement"] == "air_quality")
               |> filter(fn: (r) => r["node_name"] == "{node_name}")
+              |> sample(n: 500)
               |> keep(columns: ["_time"])
-              |> group()
+              |> sort(columns: ["_time"])
         '''
         
         result = query_api.query(org=INFLUXDB_ORG, query=query)
         months_set = set()
+        
         for table in result:
             for record in table.records:
-                time_value = record.values.get("_time")
+                time_value = record.get_time()
                 if time_value:
                     month_str = time_value.strftime("%Y-%m")
                     months_set.add(month_str)
@@ -278,7 +280,12 @@ async def get_months_with_data(
         return {
             "status": 1,
             "message": "ดึงเดือนที่มีข้อมูลสำเร็จ",
-            "data": months
+            "data": months,
+            "metadata": {
+                "node_name": node_name,
+                "total_months": len(months),
+                "optimized": True
+            }
         }
         
     except Exception as e:
